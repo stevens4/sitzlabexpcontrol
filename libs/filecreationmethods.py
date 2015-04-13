@@ -22,10 +22,13 @@ import os
 import numpy as np
 
 #generates a relative path and filename according to our data structure given a measurement type
-def filenameGen(measurementType):
+def filenameGen(measurementType=None):
     date = datetime.datetime.now().strftime("%Y-%m-%d")
     time = datetime.datetime.now().strftime("%H%M")
-    path = os.path.join(date,measurementType)
+    if measurementType is not None:
+        path = os.path.join(date,measurementType)
+    else:
+        path = os.path.join(date)
     filename = time
     return path, filename
 
