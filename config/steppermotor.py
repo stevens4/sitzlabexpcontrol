@@ -15,7 +15,7 @@ PDL = 'pdl'
 KDP = 'kdp'
 BBO = 'bbo'
 LID = 'lid'
-POL = 'polarizer'
+POL = 'hwp'
 
 import os.path
 from config.filecreation import SMLOGSPATH
