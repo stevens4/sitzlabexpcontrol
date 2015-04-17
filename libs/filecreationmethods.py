@@ -1,4 +1,6 @@
 '''by stevens4, mod: stevens4
+2015-03-21: removed measurementType as an input to filenameGen().
+
 2014-03-04: added the logFile class with methods for reading, writing,
 creating logFiles for other objects like the LoggedStepperMotor.
 
@@ -11,8 +13,6 @@ our data is organized thusly:
     Z:\data\[chamber]\[date]\[measurementType]\[time]
         [chamber] = pooh, tigger, or piglet
         [date] = date data was saved
-        [measurementType] = measurements specific to that experiment, 
-            eg. popBottle (populations of gas from a bottle) or kdpScans
         [time] = time data was saved
 '''
 
@@ -20,6 +20,8 @@ import csv
 import datetime
 import os
 import numpy as np
+
+from config.filecreation import POOHDATAPATH
 
 #generates a relative path and filename according to our data structure given a measurement type
 def filenameGen(measurementType=None):
@@ -39,11 +41,14 @@ def checkPath(path):
 
 #given a measurementType (string), dataArray (numpyArray), and parentPath (path)
 #save a CSV file according to our data structure (see above)
-def saveCSV(measurementType,dataArray,parentPath,description=None):
-    path, filename = filenameGen(measurementType)
-    path = os.path.join(parentPath,path)
+def saveCSV(dataArray,parentPath=POOHDATAPATH,subDir='',description=None):
+    date, filename = filenameGen()
+    path = os.path.join(parentPath,date)
     checkPath(path)
-    np.savetxt(os.path.join(path,filename+(('_%s' % description) if description is not None else '')+".csv"), dataArray, delimiter=",")
+    if description is not None:
+        filename += '_'+description
+    fullFileName = os.path.join(path,filename+".csv")
+    np.savetxt(fullFileName, dataArray, delimiter=",")
     
 class LogFile:
     def __init__(
