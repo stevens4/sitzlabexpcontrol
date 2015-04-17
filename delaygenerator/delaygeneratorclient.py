@@ -4,6 +4,9 @@ class DelayGeneratorClient:
     def __init__(self,protocol):        
         self.protocol = protocol
 
+    def getDelay(self,dgName):
+        return self.protocol.sendCommand('get-delay',dgName)
+        
     def getDelays(self):
         return self.protocol.sendCommand('get-delays')
 
