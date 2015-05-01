@@ -186,11 +186,10 @@ class InputWidget(QtGui.QWidget):
         if self.done:
             returnValue(None)
         
+    @inlineCallbacks
     def cancel(self):
-        print 'input is cancelling'
-        print self.scanValues
-        self.scanValues = []
-        print self.scanValues
+        for i in range(len(self.scanValues)):
+            self.scanValues.pop()
         yield self.cancelCommand()
         return
 
@@ -657,7 +656,7 @@ class SmartScanGUI(QtGui.QWidget):
                         
                         if option == QtGui.QMessageBox.Yes:
                             #quit the scan
-                            self.finish()
+                            self.cancel()
                             return
                             
                         if option == QtGui.QMessageBox.No:
@@ -684,7 +683,8 @@ class SmartScanGUI(QtGui.QWidget):
                             return
                         else:
                             self.output.setPlotterXVal(inputData)
-                            outputData = yield self.output.startAcquisition()
+                            outputDataDefer = self.output.startAcquisition()
+                            outputData = yield outputDataDefer
                             yield self.onStep(inputData,outputData)
                             self.loop()
                     
@@ -694,10 +694,9 @@ class SmartScanGUI(QtGui.QWidget):
                 def resume(self):
                     self.paused = False
                     
-                @inlineCallbacks    
                 def cancel(self):
-                    print 'cancelling...'
-                    yield self.input.cancel()
+                    self.done = True
+                    self.input.cancel()
                     self.output.cancel()
                     scanToggleClicked()
                     
@@ -705,14 +704,15 @@ class SmartScanGUI(QtGui.QWidget):
                 def finish(self):
                     if self.activeRepeat == self.repeatTotal:
                         self.done = True
-                        print 'finishing...'
                         yield self.input.cancel()
                         self.output.cancel()
                         scanToggleClicked()
                     else:
-                        print 'done with this rep. starting again...'
                         self.activeRepeat += 1
-                        self.input.initFlipScan()
+                        if self.activeRepeat % 2 == 0:
+                            self.input.initFlipScan()
+                        else:
+                            self.input.initScan()
                         self.startScan()
 
             # define what to do after values are acquired at a position
@@ -733,7 +733,6 @@ class SmartScanGUI(QtGui.QWidget):
                
             # define scanning start/pause/cancel logic
             def scanToggleClicked():
-                print self.scanning
                 if self.scanning:
                     #currently scanning so check if the scan is done, if not this was a pause
                     if not self.thisScan.done:
@@ -742,7 +741,7 @@ class SmartScanGUI(QtGui.QWidget):
 
                     else:
                         self.scanning = False
-                        self.scanToggleButton.setText("start")
+                        scanToggleButton.setText("start")
                         return
                     
                 if not self.scanning:
@@ -771,7 +770,7 @@ class SmartScanGUI(QtGui.QWidget):
                     self.thisScan = Scan(inputAgent, outputAgent, updateAgent, numToRepeat, self.plotWidget)
                     
                     #rename our button so users know about the other half of this function
-                    self.scanToggleButton.setText("pause/cancel")
+                    scanToggleButton.setText("pause/cancel")
                 
                 return
             
@@ -779,9 +778,9 @@ class SmartScanGUI(QtGui.QWidget):
             
             # set up the GUI to have the scan start/pause/cancel button and repeat spinbox    
             scanPane = QtGui.QHBoxLayout()
-            self.scanToggleButton = QtGui.QPushButton("start")
-            self.scanToggleButton.clicked.connect(scanToggleClicked)
-            scanPane.addWidget(self.scanToggleButton)
+            scanToggleButton = QtGui.QPushButton("start")
+            scanToggleButton.clicked.connect(scanToggleClicked)
+            scanPane.addWidget(scanToggleButton)
             
             self.repeatSpinBox = QtGui.QSpinBox()
             self.repeatSpinBox.setRange(1,10000)
@@ -863,7 +862,6 @@ class SmartScanGUI(QtGui.QWidget):
                 yData = []
                 errData = []
                 for rawValues in self.dataMatrix.values():
-                    print rawValues
                     yData.append(np.mean(rawValues))
                     errData.append(np.std(rawValues)/np.sqrt(len(rawValues)))
                 data = np.asarray([xData, yData, errData], dtype=np.dtype(np.float32))
